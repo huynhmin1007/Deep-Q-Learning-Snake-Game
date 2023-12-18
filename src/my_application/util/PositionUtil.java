@@ -24,7 +24,34 @@ public class PositionUtil {
 		return null;
 	}
 	
-	public static Position getNextPositionForward(Position head, int directionIndex) {
+	public static double distanceForward(Position head, Position obj, int direction) {
+		int size = GameUtil.TILE_SIZE;
+		
+		double[] distance = {
+			(head.getY() - obj.getY()) / size,
+			(head.getX() - obj.getX()) / size
+		};
+		return distance[direction % 2] != 0? Math.abs(distance[direction % 2]) : 0;
+	}
+	
+	public static double distanceDigonal(Position head, Position obj, int direction) {
+		int size = GameUtil.TILE_SIZE;
+		double distance = 2 * (Math.abs(head.getY() - obj.getY()) / size);
+		
+		return distance != 0? distance : 0;
+	}
+	
+	public static double distanceBeside(Position head, Position obj, int direction) {
+		int size = GameUtil.TILE_SIZE;
+		
+		double[] distance = {
+			(head.getX() - obj.getX()) / size,
+			(head.getY() - obj.getY()) / size
+		};
+		return distance[direction % 2] != 0? Math.abs(distance[direction % 2]) : 0;
+	}
+	
+	public static Position getNextPositionForward(Position head, int direction) {
 		int headX = head.getX();
 		int headY = head.getY();
 		
@@ -36,10 +63,10 @@ public class PositionUtil {
 			getNextPosition(headX, headY, new int[] {0, size}),
 			getNextPosition(headX, headY, new int[] {-size, 0})
 		};
-		return pos[directionIndex];
+		return pos[direction];
 	}
 	
-	public static Position getNextPositionForwardRight(Position head, int directionIndex) {
+	public static Position getNextPositionForwardRight(Position head, int direction) {
 		int headX = head.getX();
 		int headY = head.getY();
 		
@@ -51,10 +78,10 @@ public class PositionUtil {
 			getNextPosition(headX, headY, new int[] {-size, size}),
 			getNextPosition(headX, headY, new int[] {-size, -size})
 		};
-		return pos[directionIndex];
+		return pos[direction];
 	}
 	
-	public static Position getNextPositionRight(Position head, int directionIndex) {
+	public static Position getNextPositionRight(Position head, int direction) {
 		int headX = head.getX();
 		int headY = head.getY();
 		
@@ -66,10 +93,10 @@ public class PositionUtil {
 			getNextPosition(headX, headY, new int[] {-size, 0}),
 			getNextPosition(headX, headY, new int[] {0, -size})
 		};
-		return pos[directionIndex];
+		return pos[direction];
 	}
 	
-	public static Position getNextPositionBackRight(Position head, int directionIndex) {
+	public static Position getNextPositionBackRight(Position head, int direction) {
 		int headX = head.getX();
 		int headY = head.getY();
 		
@@ -81,10 +108,10 @@ public class PositionUtil {
 			getNextPosition(headX, headY, new int[] {-size, -size}),
 			getNextPosition(headX, headY, new int[] {size, -size})
 		};
-		return pos[directionIndex];
+		return pos[direction];
 	}
 	
-	public static Position getNextPositionBackLeft(Position head, int directionIndex) {
+	public static Position getNextPositionBackLeft(Position head, int direction) {
 		int headX = head.getX();
 		int headY = head.getY();
 		
@@ -96,10 +123,10 @@ public class PositionUtil {
 			getNextPosition(headX, headY, new int[] {size, -size}),
 			getNextPosition(headX, headY, new int[] {size, size})
 		};
-		return pos[directionIndex];
+		return pos[direction];
 	}
 	
-	public static Position getNextPositionLeft(Position head, int directionIndex) {
+	public static Position getNextPositionLeft(Position head, int direction) {
 		int headX = head.getX();
 		int headY = head.getY();
 		
@@ -111,10 +138,10 @@ public class PositionUtil {
 			getNextPosition(headX, headY, new int[] {size, 0}),
 			getNextPosition(headX, headY, new int[] {0, size})
 		};
-		return pos[directionIndex];
+		return pos[direction];
 	}
 	
-	public static Position getNextPositionForwardLeft(Position head, int directionIndex) {
+	public static Position getNextPositionForwardLeft(Position head, int direction) {
 		int headX = head.getX();
 		int headY = head.getY();
 		
@@ -126,7 +153,7 @@ public class PositionUtil {
 			getNextPosition(headX, headY, new int[] {size, size}),
 			getNextPosition(headX, headY, new int[] {-size, size})
 		};
-		return pos[directionIndex];
+		return pos[direction];
 	}
 	
 	public static Position getNextPosition(int headX, int headY, int[] vector) {
@@ -155,6 +182,24 @@ public class PositionUtil {
 			
 		case LEFT:
 			return snakePosition.getX() > foodPosition.getX() && snakePosition.getY() == foodPosition.getY();
+		}
+		return false;
+	}
+	
+	public static boolean isSnakeCloserToTail(Position snakePosition, Position tailPosition, Direction direction) {
+		
+		switch(direction) {
+		case UP:
+			// Đang đi lại gần thức ăn (đi từ dưới lên)
+			return snakePosition.getY() > tailPosition.getY();
+		case RIGHT:
+			return snakePosition.getX() < tailPosition.getX();
+			
+		case DOWN:
+			return snakePosition.getY() < tailPosition.getY();
+			
+		case LEFT:
+			return snakePosition.getX() > tailPosition.getX();
 		}
 		return false;
 	}

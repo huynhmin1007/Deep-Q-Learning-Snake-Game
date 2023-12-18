@@ -8,18 +8,20 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
+import java.util.Random;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 
-import my_application.application.App;
+import AStar.AStar;
 import my_application.util.GameUtil;
 import my_application.view.Environment;
+import my_application.viewhelper.Action;
+import my_application.viewhelper.Direction;
 import my_application.viewhelper.GameMode;
 import neural_network.helper.activation.Activation;
 import neural_network.helper.lost_function.MSE;
 import neural_network.helper.optimizer.Adam;
-import neural_network.helper.optimizer.Optimizer;
 import neural_network.network.Layer;
 import neural_network.network.NeuralNetwork;
 
@@ -42,50 +44,69 @@ public class Trainer extends JFrame {
 		pack();
 		setVisible(true);
 		setLocationRelativeTo(null);
-		
+		 
 		NeuralNetwork mainNetwork = new NeuralNetwork();
-		mainNetwork.setOptimizer(new Adam(0.001f));
+		
+		mainNetwork.setOptimizer(new Adam(0.00025f));
 		mainNetwork.setLostFuncton(new MSE());
 		
-		Layer l1 = new Layer(18, 64);
-		l1.setActivation(Activation.RELU.getValue());
+		mainNetwork.addLayer(new Layer(28, 64, Activation.RELU.getValue()));
+		mainNetwork.addLayer(new Layer(64, 32, Activation.RELU.getValue()));
+		mainNetwork.addLayer(new Layer(32, 3, Activation.LINEAR.getValue()));
 		
-		Layer l2 = new Layer(64, 32);
-		l2.setActivation(Activation.RELU.getValue());
-		
-		Layer l3 = new Layer(32, 3);
-		l3.setActivation(Activation.LINEAR.getValue());
-		
-		mainNetwork.addLayer(l1);
-		mainNetwork.addLayer(l2);
-		mainNetwork.addLayer(l3);
-		
-		agent = new Agent.Builder(18, 3)
+		agent = new Agent.Builder(28, 3)
 				.maxMemory(100_000)
 				.batchSize(1000)
-				.gamma(0.95)
+				.gamma(0.99)
 				.network(mainNetwork)
 				.build();
+	}
+	
+	public void trainAStar(AStar aStar) throws InterruptedException {
+		while(true) {
+			if(env.getScore() >= 100) {
+				env.repaint();
+				Thread.sleep(20);
+			}
+			
+			int action = aStar.aSearch(env.getSnake(), env.getFood(), env.getDirection());
+			if(action == -1) action = new Random().nextInt(3);
+			
+			env.step(action);
+			
+			if(env.isDone()) {
+				env.repaint();
+				System.out.println(env.getScore());
+				break;
+			}
+		}
 	}
 	
 	public void train() throws InterruptedException, IOException {
 		int highestScore = 0;
 		int maxScore = ((GameUtil.SCREEN_WIDTH * GameUtil.SCREEN_HEIGHT) / GameUtil.TILE_SIZE) - 3;
 		
-		recordScore = 55;
+		recordScore = 120;
 		
 		loadWeigthsCreated();
 		
 		int totalTimeStep = 0;
-		
+		float epsilon = 1;
+
 		for(int i = 0; highestScore < maxScore; episode++) {
 			State currentState = env.reset();
 	
 			while(true) {	
-
-				env.repaint();
-				Thread.sleep(30);
-						
+				
+				// should turn it off if want to train faster
+//				env.repaint();
+//				Thread.sleep(10);
+				
+				if(env.getScore() >= 90) {
+					env.repaint();
+					Thread.sleep(20);
+				}
+				
 				totalTimeStep++;
 				
 				if(totalTimeStep > 100000) {
@@ -95,7 +116,7 @@ public class Trainer extends JFrame {
 					agent.updateTargetNetwork();
 				}
 				
-				int action = agent.chooseAction(currentState, episode);
+				int action = agent.chooseAction(currentState, epsilon);
 				
 				State nextState = env.step(action);
 						
@@ -110,57 +131,69 @@ public class Trainer extends JFrame {
 				highestScore = Math.max(highestScore, env.getScore());
 				
 				agent.addExperience(exp);
-
-				agent.trainShort(exp);
-
+				
+				if(highestScore > recordScore) {
+					recordScore = highestScore;
+					saveDataTrained(System.getProperty("user.dir") + "/data_trained_" + (++i) + ".txt", agent.getMainNetwork());
+				}
 				if(done) {
-					if(highestScore > recordScore) {
-						saveDataTrained(System.getProperty("user.dir") + "/data_trained_" + (++i) + ".txt", agent.getMainNetwork());
-						recordScore = highestScore;
-					}
-
+					env.repaint();
+					agent.trainShort(exp);
 					agent.trainMainNetwork();
-	
+					
 					break;
 				}
+				agent.trainShort(exp);
 			}
+			if(epsilon >= 0) epsilon *= 0.96f;
 			System.out.println(String.format("EPS = %d, Score = %d, Highest Score = %d", episode + 1, env.getScore(), highestScore));
 		}
 	}
 	
-	public void test() throws IOException, InterruptedException {
-		loadDataTrained(System.getProperty("user.dir") + "/data_trained_1.txt", agent.getMainNetwork());
+	public void test(int i) throws IOException, InterruptedException {
+		loadDataTrained(System.getProperty("user.dir") + "/data_trained_best_" + i + ".txt", agent.getMainNetwork());
 		
 		int highestScore = 0;
-		int totalTimeStep = 0;
+		double averageScore = 0;
 		
-		for(int e = 0; e < 100; e++) {
+		for(int e = 0; e < 20; e++) {
 			State currentState = env.reset();
 			while(true) {
-				
-				env.repaint();
-				Thread.sleep(30);
-				
-				totalTimeStep++;
-				
-				if(totalTimeStep >= 100000) {
-					agent.updateTargetNetwork();
+				if(env.getScore() >= 100) {
+					env.repaint();
+					Thread.sleep(20);
 				}
-				else if(totalTimeStep % 50 == 0) {
-					agent.updateTargetNetwork();
-				}
-				
+
 				int action = agent.chooseAction(currentState);
+				
 				currentState = env.step(action).clone();
 				highestScore = Math.max(highestScore, env.getScore());
-
+				
 				if(env.isDone()) {
-					Thread.sleep(300);
+					env.repaint();
+					Thread.sleep(400);
 					break;
 				}
 			}
+			averageScore += env.getScore();
 			System.out.println("Score = " + env.getScore());
 		}
+		System.out.println("Average Score = " + averageScore / 10);
+	}
+	
+	public int changeDirection(int currentDirection, Action action) {
+		switch(action) {
+		case MOVE_RIGHT:
+			currentDirection = (currentDirection + 1) % Direction.values().length;
+			break;
+		case MOVE_LEFT:
+			currentDirection--;
+			if(currentDirection < 0) {
+				currentDirection = Direction.values().length - 1;
+			}
+			break;
+		}
+		return currentDirection;
 	}
 	
 	public void loadWeigthsCreated() throws IOException {

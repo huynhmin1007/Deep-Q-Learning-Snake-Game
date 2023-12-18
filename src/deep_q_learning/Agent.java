@@ -1,6 +1,7 @@
 package deep_q_learning;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Random;
 import neural_network.network.NeuralNetwork;
@@ -53,18 +54,16 @@ public class Agent {
 	
 	public int getBestAction(double[] qValues) {
 		int maxIndex = 0;
+		
 		for(int i = 1; i < qValues.length; i++) {
 			maxIndex = qValues[maxIndex] < qValues[i]? i : maxIndex;
 		}
+
 		return maxIndex;
 	}
 	
 	public double getMaxQValue(double[] qValues) {
-		double max = Double.NEGATIVE_INFINITY;
-		for(int i = 0; i < qValues.length; i++) {
-			max = Math.max(max, qValues[i]);
-		}
-		return max;
+		return Arrays.stream(qValues).max().orElse(Double.MIN_VALUE);
 	}
 	
 	public void trainMainNetwork() {
@@ -78,26 +77,23 @@ public class Agent {
 			expBatch = buffer.toArray(new Experience[0]);
 		}
 		
-		for(int i = 0; i < expBatch.length; i++) {
-			Experience exp = expBatch[i];
-			
-			State state = exp.getState();
+		for(Experience exp : expBatch) {
 			
 			double maxQNextState = getMaxQValue(getQValues(exp.getNextState(), targetNetwork));
 			
 			double targetQValue = exp.getReward();
-			
 			if(!exp.isDone()) {
 				targetQValue += gamma * maxQNextState;
 			}
 			
-			double[] qPredicts = getQValues(state, mainNetwork);
+			double[] qPredicts = getQValues(exp.getState(), mainNetwork);
 			
 			double[] targets = qPredicts.clone();
 			targets[exp.getAction()] = targetQValue;
 			
 			mainNetwork.loss(qPredicts, targets);
 		}
+		
 		mainNetwork.fit();
 	}
 	
@@ -105,7 +101,6 @@ public class Agent {
 		double maxQNextState = getMaxQValue(getQValues(exp.getNextState(), targetNetwork));
 		
 		double targetQValue = exp.getReward();
-		
 		if(!exp.isDone()) {
 			targetQValue += gamma * maxQNextState;
 		}
@@ -124,10 +119,9 @@ public class Agent {
 		targetNetwork = mainNetwork.clone();
 	}
 	
-	public int chooseAction(State state, int episode) {
-		int epsilon = 80 - episode;
+	public int chooseAction(State state, float epsilon) {
 		Random random = new Random();
-		if(random.nextInt(0, 200) < epsilon) {
+		if(random.nextDouble() < epsilon) {
 			return random.nextInt(numberOfAction);
 		}
 		return getBestAction(getQValues(state, mainNetwork));

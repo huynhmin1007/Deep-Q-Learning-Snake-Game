@@ -1,19 +1,23 @@
 package my_application.view;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Objects;
-
 import deep_q_learning.State;
 import my_application.util.PositionUtil;
 import my_application.util.StateUtil;
 import my_application.viewhelper.Action;
 import my_application.viewhelper.Direction;
 import my_application.viewhelper.GameMode;
+import my_application.viewhelper.Position;
 
 public class Environment extends SnakeGame {
 	
 	private int frameIterator;
 	private double reward = 0;
+	private boolean isEatedFood = false;
+	
+	private Position last;
 	
 	public Environment(GameMode mode) {
 		super();
@@ -29,7 +33,7 @@ public class Environment extends SnakeGame {
 	}
 	
 	private State buildState() {
-		return new State(StateUtil.buildState(snake, food, currentDirection));
+		return new State(StateUtil.buildState(getSnake().toArray(new Position[0]), food, currentDirection));
 	}
 	
 	public State reset() {
@@ -42,20 +46,23 @@ public class Environment extends SnakeGame {
 	public State step(final int actionIndex) {
 		Action action = Action.getActionByIndex(actionIndex);
 
+		if(isEatedFood) {
+			placeFood();
+			isEatedFood = false;
+		}
+		
 		this.changeDirection(action);
 		this.move();
 		
+		reward = calcReward();
+
 		frameIterator++;
-		if(frameIterator > 200) {
+		if(frameIterator > 80 * snakeLength) {
 			running = false;
 			reward = -10;
 		}
 		
-		State state = buildState();
-		
-		reward = calcReward();
-
-		return state;
+		return buildState();
 	}
 	
 	public void changeDirection(Action action) {
@@ -94,17 +101,30 @@ public class Environment extends SnakeGame {
 		
 		if(snake[0].equals(food)) {
 			snakeLength++;
-			placeFood();
 			frameIterator = 0;
-			return 10;
+			isEatedFood = true;
+			
+			if(snake[0].equals(last)) return -10;
+			
+			return 5;
+		}
+
+		if(PositionUtil.isSnakeCloserToTail(snake[0], getTail(), currentDirection)) {
+			return 0.1;
 		}
 		
-		if(PositionUtil.isSnakeCloserToFood(snake[0], food, currentDirection)) {
-			return 0.2;
-		}
-		
-		return -0.1;
+		return 0;
 	}
+	
+	public Position getTail() {
+		return snake[snakeLength - 1] != null? snake[snakeLength - 1] : snake[snakeLength - 2];
+	}
+	
+	@Override
+	public void move() {
+		last = snake[snakeLength - 1];
+		super.move();
+		if(last == null) last = snake[snakeLength - 1];	}
 	
 	public double getReward() {
 		return reward;
@@ -112,5 +132,27 @@ public class Environment extends SnakeGame {
 	
 	public boolean isDone() {
 		return !running;
+	}
+	
+	public int getFrameIterator() {
+		return this.frameIterator;
+	}
+	
+	public ArrayList<Position> getSnake() {
+		if(snake[snakeLength - 1] == null) {
+			ArrayList<Position> arr = Arrays.stream(snake).filter(Objects::nonNull).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+			arr.add(last);
+			return arr;
+			
+		}
+		return Arrays.stream(snake).filter(Objects::nonNull).collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+	}
+	
+	public Position getFood() {
+		return this.food;
+	}
+	
+	public int getDirection() {
+		return Direction.getIndexOfDirection(currentDirection);
 	}
 }

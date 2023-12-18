@@ -1,7 +1,5 @@
 package neural_network.helper.optimizer;
 
-import java.util.Arrays;
-
 public abstract class Optimizer {
 	
 	protected float learningRate = 0.001f;

@@ -5,6 +5,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -19,7 +20,6 @@ import javax.swing.Timer;
 
 import my_application.util.GameUtil;
 import my_application.util.PositionUtil;
-import my_application.viewhelper.Action;
 import my_application.viewhelper.Direction;
 import my_application.viewhelper.Position;
 
@@ -103,17 +103,9 @@ public class SnakeGame extends JPanel implements ActionListener {
 		return matches > 1;
 	}
 	
-	public boolean checkCollidingBodyParts(Position snakeHead) {
-		long matches = Arrays.stream(snake)
-				.filter(Objects::nonNull)
-				.filter(pos -> pos.equals(snakeHead))
-				.count();
-
-		return matches > 0;
-	}
-	
 	public void move() {
 		// Di chuyen
+		
 		if(snakeLength - 1 >= 0) System.arraycopy(snake, 0, snake, 1, snakeLength - 1);
 		
 		snake[0] = PositionUtil.getNextPosition(snake[1], currentDirection);
@@ -144,7 +136,7 @@ public class SnakeGame extends JPanel implements ActionListener {
 		return snakeLength - 3;
 	}
 	
-	public void play() {
+	public void play() {		
 		move();
 		if(isFoodEaten()) {
 			snakeLength++;
@@ -164,15 +156,11 @@ public class SnakeGame extends JPanel implements ActionListener {
 	protected void paintComponent(Graphics g) {
 		// TODO Auto-generated method stub
 		super.paintComponent(g);
-		
-		draw(g);
+		Graphics2D g2 = (Graphics2D) g;
+		draw(g2);
 	}
 	
 	private void draw(Graphics g) {
-		if(!running) {
-			return;
-		}
-		
 		// Score
 		g.setColor(Color.RED);
 		g.setFont(new Font("Ink Free", Font.BOLD, 28));
@@ -181,22 +169,31 @@ public class SnakeGame extends JPanel implements ActionListener {
 		g.drawString(scoreDisplay, GameUtil.TILE_SIZE, g.getFont().getSize());
 		
 		// Draw food
-		g.setColor(Color.RED);
-		g.fillOval(food.getX(), food.getY(), GameUtil.TILE_SIZE, GameUtil.TILE_SIZE);
+		drawFood(g);
 		
 		// Draw snake
-		g.setColor(Color.BLUE.brighter());
-		for(int i = 1; i < snakeLength; i++) {
+		g.setColor(Color.WHITE);
+		for(int i = 1; i < snakeLength - 1; i++) {
 			Position pos = snake[i];
 			if(pos != null) {				
-				g.fill3DRect(pos.getX(), pos.getY(), GameUtil.TILE_SIZE, GameUtil.TILE_SIZE, true);
+				g.fillRect(pos.getX(), pos.getY(), GameUtil.TILE_SIZE, GameUtil.TILE_SIZE);
 			}
 		}
 		
+		g.setColor(Color.YELLOW);
+		g.fillRect(snake[0].getX(), snake[0].getY(), GameUtil.TILE_SIZE, GameUtil.TILE_SIZE);
+		
+		Position tail = snake[snake.length - 1];
+		if(tail == null) tail = snake[snakeLength - 2];
 		g.setColor(Color.CYAN);
-		g.fill3DRect(snake[0].getX(), snake[0].getY(), GameUtil.TILE_SIZE, GameUtil.TILE_SIZE, true);
-
+		g.fillRect(tail.getX(), tail.getY(), GameUtil.TILE_SIZE, GameUtil.TILE_SIZE);
+		
 		Toolkit.getDefaultToolkit().sync();
+	}
+	
+	private void drawFood(Graphics g) {
+		g.setColor(Color.RED);
+		g.fillOval(food.getX(), food.getY(), GameUtil.TILE_SIZE, GameUtil.TILE_SIZE);
 	}
 
 	@Override
@@ -205,6 +202,12 @@ public class SnakeGame extends JPanel implements ActionListener {
 			play();
 		}
 		else {
+			try {
+				Thread.sleep(400);
+			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 			initializeGame();
 			timer.stop();
 			timer.start();

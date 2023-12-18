@@ -1,7 +1,5 @@
 package neural_network.helper.optimizer;
 
-import java.util.Arrays;
-
 public class Adam extends Optimizer {
 	
 	private double beta1 = 0.9;
@@ -21,7 +19,7 @@ public class Adam extends Optimizer {
 
 	@Override
 	public double[][] calcGradientForWeights(double[][] totalErrorWeights, int mean) {
-		t++;
+		
 		if(mWeights == null) {
 			mWeights = new double[totalErrorWeights.length][totalErrorWeights[0].length];
 		}

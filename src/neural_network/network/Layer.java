@@ -1,5 +1,6 @@
 package neural_network.network;
 
+import java.util.Arrays;
 import java.util.Random;
 
 import neural_network.helper.activation.IActivation;
@@ -21,7 +22,7 @@ public class Layer {
 	
 	private int mean;
 	
-	public Layer(int inputSize, int outputSize) {
+	public Layer(int inputSize, int outputSize, IActivation activation) {
 		this.inputs = new double[inputSize];
 		this.outputs = new double[outputSize];
 		this.z = new double[outputSize];
@@ -31,13 +32,15 @@ public class Layer {
 		totalErrorWeights = new double[inputSize][outputSize];
 		totalErrorBiases = new double[outputSize];
 		
+		this.activation = activation;
+		
 		initializeWeights(inputSize, outputSize);
-		initializeBiases();
+		initializeBiases(inputSize, outputSize);
 	}
 	
 	public Layer(double[] inputs, double[] outputs, double[] z, double[][] weights, double[] biases,
 			IActivation activation, Optimizer optimizer) {
-		super();
+		
 		this.inputs = inputs;
 		this.outputs = outputs;
 		this.z = z;
@@ -51,39 +54,49 @@ public class Layer {
 	    Random random = new Random();
 	    double limit = Math.sqrt(6.0 / (inputSize + outputSize));
 
-	    for (int i = 0; i < inputSize; i++) {
-	        for (int j = 0; j < outputSize; j++) {
+	    for(int i = 0; i < weights.length; i++) {
+	        for (int j = 0; j < weights[i].length; j++) {
 	            weights[i][j] = random.nextDouble(-1, 1) * 2 * limit - limit;
 	        }
 	    }
 	}
 	
-	public void initializeBiases() {
-		
+	public void initializeBiases(int inputSize, int outputSize) {
+		Random random = new Random();
+	    double limit = Math.sqrt(6.0 / (inputSize + outputSize));
+
+	    for(int i = 0; i < biases.length; i++) {
+	    	biases[i] = random.nextDouble(-1, 1) * 2 * limit - limit;
+	    }
 	}
 	
 	public void forwardPropagation() {
 		for(int i = 0; i < outputs.length; i++) {
 			double weightedSum = 0;
+			
 			for(int j = 0; j < inputs.length; j++) {
 				weightedSum += inputs[j] * weights[j][i];
 			}
+			
 			weightedSum += biases[i];
+			
 			z[i] = weightedSum;
 			outputs[i] = activation.activation(z[i]);
 		}
 	}
 
-	public double[] backPropagation(double[] error) {
+	public double[] backPropagation(double[] errors) {
 		double[] prevError = new double[inputs.length];
-		for(int i = 0; i < prevError.length; i++) {
-			for(int j = 0; j < error.length; j++) {
-				prevError[i] += error[j] * weights[i][j] * activation.activationDerivative(z[j], outputs[j]);
+		
+		for(int i = 0; i < errors.length; i++) {
+			double error = errors[i] * activation.activationDerivative(z[i], outputs[i]); 
+			for(int j = 0; j < prevError.length; j++) {
+				prevError[j] += error * weights[j][i];
 			}
 		}
 		
-		for(int i = 0; i < error.length; i++) {
-			double gradient = error[i] * activation.activationDerivative(z[i], outputs[i]);
+		for(int i = 0; i < errors.length; i++) {
+			double gradient = errors[i] * activation.activationDerivative(z[i], outputs[i]);
 			for(int j = 0; j < weights.length; j++) {
 				totalErrorWeights[j][i] += inputs[j] * gradient;
 			}
@@ -153,10 +166,10 @@ public class Layer {
 	}
 	
 	public Layer clone() {
-		double[][] weightsClone = new double[weights.length][weights[0].length];
-		for(int i = 0; i < weightsClone.length; i++) {
-			weightsClone[i] = weights[i].clone();
-		}
+		double[][] weightsClone = Arrays.stream(weights)
+				.map(double[]::clone)
+				.toArray(double[][]::new);
+		
 		return new Layer(inputs.clone(), outputs.clone(), z.clone(), weightsClone, biases.clone(), activation, optimizer.clone());
 	}
 }

@@ -55,19 +55,19 @@ public class NeuralNetwork {
 		}
 	}
 	
-	public void backPropagation(double[] error) {
+	public void backPropagation(double[] errors) {
 		for(int i = size - 1; i >= 0; i--) {
-			error = network.get(i).backPropagation(error);
+			errors = network.get(i).backPropagation(errors);
 		}
 	}
 	
 	public void loss(double[] predict, double[] target) {
-		double[] error = new double[predict.length];
+		double[] errors = new double[predict.length];
 		
 		for(int i = 0; i < predict.length; i++) {
-			error[i] = lostFuncton.lostFunctionDerivative(predict[i], target[i]);
+			errors[i] = lostFuncton.lostFunctionDerivative(predict[i], target[i]);
 		}
-		backPropagation(error);
+		backPropagation(errors);
 	}
 	
 	public void fit() {
@@ -96,28 +96,12 @@ public class NeuralNetwork {
 		return this.size;
 	}
 	
-	public void setWeights(NeuralNetwork targetNetwork) {
-		for(int i = 0; i < size; i++) {
-			Layer layer = this.getLayer(i);
-			Layer layerTarget = targetNetwork.getLayer(i);
-			
-			double[][] weigthsTarget = layerTarget.getWeights();
-			double[][] weightsClone = new double[weigthsTarget.length][weigthsTarget[0].length];
-			
-			for(int j = 0; j < weightsClone.length; j++) {
-				weightsClone[j] = weigthsTarget[j].clone();
-			}
-			
-			layer.setWeights(weightsClone);
-			layer.setBiases(layerTarget.getBiases().clone());
-		}
-	}
-	
 	public NeuralNetwork clone() {
 		ArrayList<Layer> networkClone = new ArrayList<Layer>();
 		for(Layer layer : network) {
 			networkClone.add(layer.clone());
 		}
+		
 		Layer outClone = networkClone.get(size - 1);
 		return new NeuralNetwork(networkClone, lostFuncton, optimizer.clone(), size, outClone);
 	}
