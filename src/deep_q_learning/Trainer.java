@@ -31,7 +31,6 @@ public class Trainer extends JFrame {
 	private Agent agent;
 	
 	private int episode = 0;
-	private int recordScore = 0;
 	
 	public Trainer() {
 		env = new Environment(GameMode.STEP);
@@ -86,7 +85,7 @@ public class Trainer extends JFrame {
 		int highestScore = 0;
 		int maxScore = ((GameUtil.SCREEN_WIDTH * GameUtil.SCREEN_HEIGHT) / GameUtil.TILE_SIZE) - 3;
 		
-		recordScore = 120;
+		int recordScore = 140;
 		
 		loadWeigthsCreated();
 		
@@ -102,7 +101,7 @@ public class Trainer extends JFrame {
 //				env.repaint();
 //				Thread.sleep(10);
 				
-				if(env.getScore() >= 90) {
+				if(env.getScore() >= 100) {
 					env.repaint();
 					Thread.sleep(20);
 				}
@@ -131,19 +130,20 @@ public class Trainer extends JFrame {
 				highestScore = Math.max(highestScore, env.getScore());
 				
 				agent.addExperience(exp);
+				agent.trainShort(exp);
 				
 				if(highestScore > recordScore) {
 					recordScore = highestScore;
-					saveDataTrained(System.getProperty("user.dir") + "/data_trained_" + (++i) + ".txt", agent.getMainNetwork());
+					saveDataTrained(System.getProperty("user.dir") + "/data_trained_" + (++i) + ".txt", agent.getMainNetwork(), env.getScore());
 				}
 				if(done) {
 					env.repaint();
-					agent.trainShort(exp);
 					agent.trainMainNetwork();
-					
+					if(env.getScore() >= 140) {
+						saveDataTrained(System.getProperty("user.dir") + "/data_trained_" + (++i) + ".txt", agent.getMainNetwork(), env.getScore());
+					}
 					break;
 				}
-				agent.trainShort(exp);
 			}
 			if(epsilon >= 0) epsilon *= 0.96f;
 			System.out.println(String.format("EPS = %d, Score = %d, Highest Score = %d", episode + 1, env.getScore(), highestScore));
@@ -166,7 +166,7 @@ public class Trainer extends JFrame {
 
 				int action = agent.chooseAction(currentState);
 				
-				currentState = env.step(action).clone();
+				currentState = env.step(action);
 				highestScore = Math.max(highestScore, env.getScore());
 				
 				if(env.isDone()) {
@@ -229,7 +229,7 @@ public class Trainer extends JFrame {
 		br.close();
 	}
 	
-	public void saveDataTrained(String path, NeuralNetwork network) throws FileNotFoundException {
+	public void saveDataTrained(String path, NeuralNetwork network, int score) throws FileNotFoundException {
 		PrintWriter pr = new PrintWriter(new FileOutputStream(path), true);
 		
 		for(int i = 0; i < network.getSize(); i++) {
@@ -253,7 +253,7 @@ public class Trainer extends JFrame {
 			pr.println(biasesStr);
 		};
 		
-		pr.println("Record Score: " + recordScore);
+		pr.println("Score: " + score);
 		
 		pr.close();
 	}
