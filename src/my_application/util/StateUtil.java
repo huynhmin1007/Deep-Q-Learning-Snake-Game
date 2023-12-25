@@ -159,6 +159,28 @@ public class StateUtil {
 		double[] isCollisionWall = new double[7];
 		Arrays.fill(isCollisionWall, 1.0);
 		
+		if(PositionUtil.getNextPositionForward(snakeHead, direction).isOutsideTheGameBounds()) {
+			isCollisionWall[0] = 0;
+		}
+		if(PositionUtil.getNextPositionForwardRight(snakeHead, direction).isOutsideTheGameBounds()) {
+			isCollisionWall[1] = 0;
+		}
+		if(PositionUtil.getNextPositionRight(snakeHead, direction).isOutsideTheGameBounds()) {
+			isCollisionWall[2] = 0;
+		}
+		if(PositionUtil.getNextPositionBackRight(snakeHead, direction).isOutsideTheGameBounds()) {
+			isCollisionWall[3] = 0;
+		}
+		if(PositionUtil.getNextPositionBackLeft(snakeHead, direction).isOutsideTheGameBounds()) {
+			isCollisionWall[4] = 0;
+		}
+		if(PositionUtil.getNextPositionLeft(snakeHead, direction).isOutsideTheGameBounds()) {
+			isCollisionWall[5] = 0;
+		}
+		if(PositionUtil.getNextPositionForwardLeft(snakeHead, direction).isOutsideTheGameBounds()) {
+			isCollisionWall[6] = 0;
+		}
+		
 		if(snakeHead.isOutsideTheGameBounds()) {
 			isCollisionWall[0] = -1;
 		}

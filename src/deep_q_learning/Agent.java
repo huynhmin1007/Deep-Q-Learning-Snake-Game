@@ -140,6 +140,10 @@ public class Agent {
 		this.buffer.clear();
 	}
 	
+	public int getBufferSize() {
+		return bufferSize;
+	}
+
 	public static class Builder {
 		private int stateSize;
 		private int numberOfAction;
